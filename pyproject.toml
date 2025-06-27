@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rcpsp-scheduler"
+version = "0.1.0"
+description = "Simple RCPSP scheduler"
+authors = [ { name = "Example" } ]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "ortools>=9.9"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
