@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RCPSP Schedule</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #999; padding: 4px; text-align: center; }
+    .task-cell { background-color: #cde; }
+  </style>
+</head>
+<body>
+  <div>
+    <button id="zoom-in">Zoom In</button>
+    <button id="zoom-out">Zoom Out</button>
+  </div>
+  <div>
+    <input id="task-filter" placeholder="Task name" />
+    <input id="exec-filter" placeholder="Executor" />
+    <label><input type="checkbox" id="or-toggle" /> OR</label>
+  </div>
+  <div id="table-container"></div>
+  <script>
+  const data = __DATA__;
+  const tasks = data.tasks || [];
+  const resources = data.resources || [];
+  const scheduleMap = {};
+  (data.schedule || []).forEach(d => scheduleMap[d.id] = d);
+  let tasksFiltered = tasks.slice();
+
+  function render() {
+    const horizon = d3.max(data.schedule, d => d.end);
+    const days = d3.range(horizon);
+    const container = d3.select('#table-container');
+    container.selectAll('*').remove();
+    const table = container.append('table');
+    const header = table.append('tr');
+    header.append('th').text('Resource');
+    days.forEach(d => header.append('th').text(d));
+
+    resources.forEach(res => {
+      const row = table.append('tr');
+      row.append('th').text(res.id);
+      let day = 0;
+      while (day < horizon) {
+        const task = tasksFiltered.find(t => t.demands && t.demands[res.id] && scheduleMap[t.id].start <= day && scheduleMap[t.id].end > day);
+        if (task) {
+          const start = day;
+          while (day < horizon && scheduleMap[task.id].start <= day && scheduleMap[task.id].end > day) {
+            day++;
+          }
+          const cell = row.append('td')
+            .attr('colspan', day - start)
+            .attr('class', 'task-cell')
+            .text(task.id);
+          cell.append('title')
+            .text(`${task.id}: ${scheduleMap[task.id].start} - ${scheduleMap[task.id].end} (${scheduleMap[task.id].end - scheduleMap[task.id].start} days)`);
+        } else {
+          row.append('td');
+          day += 1;
+        }
+      }
+    });
+    updateZoom();
+  }
+
+  function applyFilter() {
+    const t = document.getElementById('task-filter').value.trim().toLowerCase();
+    const e = document.getElementById('exec-filter').value.trim().toLowerCase();
+    const useOr = document.getElementById('or-toggle').checked;
+    tasksFiltered = tasks.filter(task => {
+      const taskOk = !t || task.id.toLowerCase().includes(t);
+      const execOk = !e || Object.keys(task.demands || {}).some(r => r.toLowerCase().includes(e));
+      return useOr ? (taskOk || execOk) : (taskOk && execOk);
+    });
+    render();
+  }
+
+  let scale = 1;
+  function updateZoom() {
+    d3.selectAll('td,th')
+      .style('font-size', (12 * scale) + 'px')
+      .style('min-width', (40 * scale) + 'px');
+  }
+  d3.select('#zoom-in').on('click', () => { scale *= 1.25; updateZoom(); });
+  d3.select('#zoom-out').on('click', () => { scale /= 1.25; updateZoom(); });
+  document.getElementById('task-filter').addEventListener('input', applyFilter);
+  document.getElementById('exec-filter').addEventListener('input', applyFilter);
+  document.getElementById('or-toggle').addEventListener('change', applyFilter);
+  render();
+  </script>
+</body>
+</html>
