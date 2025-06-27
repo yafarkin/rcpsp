@@ -28,7 +28,7 @@ def main() -> None:
     tasks, resources, _ = load_json(input_path)
     sched = Scheduler(tasks, resources)
     schedule = sched.solve()
-    write_schedule(output_path, tasks, schedule)
+    write_schedule(output_path, tasks, schedule, resources)
 
     visualize_script = Path(__file__).with_name("visualize.py")
     if visualize_script.exists():
